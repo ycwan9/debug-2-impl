@@ -33,7 +33,8 @@ def collect_step(thread):
     return {
         "line": line_no,
         "var": [i for i in [parse_var(v) for v in frame.get_locals()] if i],
-        "bt": [str(thread.GetFrameAtIndex(i).name) for i in range(thread.num_frames)]
+        "bt": [str(thread.GetFrameAtIndex(i).name) for i in range(thread.num_frames)],
+        "arg": [i for i in [parse_var(v) for v in frame.get_arguments()] if i],
     }
 
 
