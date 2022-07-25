@@ -74,3 +74,4 @@ if __name__ == "__main__":
     ret = diff_src(sys.argv[1])
     if any(ret):
         print(ret)
+        exit(1)
