@@ -23,6 +23,7 @@ def main():
     gencsmith.gencsmith(cfile)
     ret = diff_src(sys.argv[1])
     if any(ret):
+        print("violation found")
         reduce_file(cfile)
         print(ret)
     else:
