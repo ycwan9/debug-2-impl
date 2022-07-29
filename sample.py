@@ -18,7 +18,8 @@ def reduce_file(srcfile):
 
 
 def main():
-    os.environ["C_INCLUDE_PATH"] = "/usr/include/csmith"
+    if not os.getenv("C_INCLUDE_PATH"):
+        os.environ["C_INCLUDE_PATH"] = "/usr/include/csmith"
     cfile = sys.argv[1]
     gencsmith.gencsmith(cfile)
     ret = diff_src(sys.argv[1])
