@@ -69,7 +69,7 @@ def record(exe):
 
     thread = process.GetThreadAtIndex(0)
 
-    source_file = thread.GetFrameAtIndex(0).line_entry.file
+    source_file = target.FindFunctions("main")[0].compile_unit.file
     trace = []
     while process.GetState() == lldb.eStateStopped:
         logger.debug("frame: %s", thread.GetFrameAtIndex(0))
