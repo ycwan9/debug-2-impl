@@ -7,14 +7,7 @@ from subprocess import run
 
 import gencsmith
 from check_invar import diff_src
-
-
-def reduce_file(srcfile):
-    cfile = os.path.abspath(srcfile + ".creduce.c")
-    shutil.copyfile(srcfile, cfile)
-    os.environ["creduce_target"] = cfile
-    checker = os.path.dirname(os.path.abspath(__file__)) + "/creduce_checker.py"
-    run(["creduce", checker, cfile], cwd=os.path.dirname(cfile), check=True)
+from reduce_cfile import reduce_file
 
 
 def main():
