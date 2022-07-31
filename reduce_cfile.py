@@ -9,7 +9,7 @@ from subprocess import run
 def reduce_file(srcfile):
     cfile = os.path.abspath(srcfile + ".creduce.c")
     shutil.copyfile(srcfile, cfile)
-    os.environ["creduce_target"] = cfile
+    os.environ["creduce_target"] = os.path.basename(cfile)
     checker = os.path.dirname(os.path.abspath(__file__)) + "/creduce_checker.py"
     run(["creduce", checker, cfile], cwd=os.path.dirname(cfile), check=True)
 
