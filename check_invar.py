@@ -48,6 +48,8 @@ def check_pi(trace_u, trace_o):
 
 
 def diff_trace(trace_u, trace_o):
+    trace_o.sort(key=lambda x: x.line)
+    trace_u.sort(key=lambda x: x.line)
     return tuple(f(trace_u, trace_o) for f in [check_li, check_bi, check_li, check_pi])
 
 
