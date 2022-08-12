@@ -71,6 +71,7 @@ CFALGS = [
     "-Werror=sometimes-uninitialized",
     "-Werror=uninitialized",
     "-Werror=uninitialized-const-reference",
+    "-Werror=strict-prototypes",
     "-g"
 ]
 CFALGS_UNOPT = ["-O0"]

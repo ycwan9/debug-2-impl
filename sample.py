@@ -14,10 +14,17 @@ def main():
     if not os.getenv("C_INCLUDE_PATH"):
         os.environ["C_INCLUDE_PATH"] = "/usr/include/csmith"
     cfile = sys.argv[1]
-    gencsmith.gencsmith(cfile)
-    ret = diff_src(sys.argv[1])
+    if not os.getenv("SKIP_CSMITH"):
+        gencsmith.gencsmith(cfile)
+    ret = diff_src(cfile)
     if any(ret):
-        reduce_expr = " ".join(str(len(i)) for i in ret)
+        check_method = os.getenv("REDUCE_METHOD")
+        reduce_expr = ""
+        if check_method == "1st":
+            from opt_bisect import bisect_1st_violation
+            reduce_expr = str(bisect_1st_violation(cfile))
+        elif check_method == "cnt":
+            reduce_expr = " ".join(str(len(i)) for i in ret)
         os.environ["reduce_expr"] = reduce_expr
         print("violation found")
         reduce_file(cfile)
