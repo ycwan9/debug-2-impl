@@ -19,6 +19,7 @@ def main():
         gencsmith.gencsmith(cfile)
     if os.getenv("DO_TRANSFORM"):
         random_transform(cfile)
+        assert gencsmith.checkUB(cfile) == 0
     ret = diff_src(cfile)
     if any(ret):
         check_method = os.getenv("REDUCE_METHOD")

@@ -17,6 +17,7 @@ def test(prefix=""):
         bugdir = "{}/{}_{}".format(savedir, prefix, datetime.now().isoformat())
         os.mkdir(bugdir)
         os.system(f"bash -c 'cp -a {gendir}/{{*.c,perses*}} {bugdir}'")
+        os.system(f"bash -c 'rm -r {gendir}/{{*.c,perses*}}'")
     return ret
 
 

@@ -32,6 +32,6 @@ def transform(transformer: list, fin: str):
 
 
 def random_transform(fin: str):
-    trans = [random.choice(TRANSFORMERS) for _ in random.randint(0, MAX_TRANS)]
+    trans = [random.choice(TRANSFORMERS) for _ in range(random.randint(0, MAX_TRANS))]
     for i in trans:
         transform(i, fin)

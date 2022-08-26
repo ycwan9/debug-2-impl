@@ -39,13 +39,14 @@ def checkUB(cfilename):
     subprocess.call(rm_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if rterrorflag:
         return 1
-    else:
-        return 0
 
-            
-
-
-
+    # check ccomp
+    ccomp_cmd = "timeout -s 9 30 ccomp -interp -fall".split()
+    ccomp_cmd.append(cfilename)
+    cplt = subprocess.run(ccomp_cmd,stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if cplt.returncode != 0:
+        print("Seed Program Generation: generated C file cannot pass ccomp")
+        return 1
 
 
 def gencsmith(cfilename):
@@ -98,26 +99,17 @@ def gencsmith(cfilename):
         with open(cfilename, "w") as cfile:
             subprocess.call(csmith_cmd, stdout=cfile)
 
-        #check ub
-        ret = checkUB(cfilename)
-        if ret != 0:
-            continue
-
         #check size
-        minsize = 4000
+        minsize = 40
         filesize = os.path.getsize(cfilename)
         if filesize < minsize:
             print("Seed Program Generation: generated C file too small")
             continue
 
-        #check ccomp
-        ccomp_cmd = "timeout -s 9 30 ccomp -interp -fall".split()
-        ccomp_cmd.append(cfilename)
-        cplt = subprocess.run(ccomp_cmd,stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        if cplt.returncode != 0:
-            print("Seed Program Generation: generated C file cannot pass ccomp")
+        #check ub
+        ret = checkUB(cfilename)
+        if ret != 0:
             continue
 
         print("Seed Program Generation: have a good seed file")
         return 0
-        
