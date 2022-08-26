@@ -6,12 +6,26 @@ import shutil
 from subprocess import run
 
 
+script_path = os.path.dirname(os.path.abspath(__file__))
+
+
+def reduce_command(cfile):
+    checker = os.path.dirname(os.path.abspath(cfile)) + "/creduce_checker.py"
+    #return ["creduce", checker, cfile]
+    return [
+        "java",
+        "-jar",
+        script_path+"/../perses_deploy.jar",
+        "--test-script", checker,
+        "--code-format", "ORIG_FORMAT",
+        "--input-file", cfile]
+
+
 def reduce_file(srcfile):
     cfile = os.path.abspath(srcfile + ".creduce.c")
     shutil.copyfile(srcfile, cfile)
     os.environ["creduce_target"] = os.path.basename(cfile)
-    checker = os.path.dirname(os.path.abspath(__file__)) + "/creduce_checker.py"
-    run(["creduce", checker, cfile], cwd=os.path.dirname(cfile), check=True)
+    run(reduce_command(cfile), cwd=os.path.dirname(cfile), check=True)
 
 
 if __name__ == "__main__":

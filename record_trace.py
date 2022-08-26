@@ -49,7 +49,7 @@ def collect_step(thread):
     )
 
 
-def record(exe):
+def record(exe, line_of_interest=None):
 
     debugger = lldb.SBDebugger.Create()
     debugger.SetAsync(False)
@@ -71,11 +71,24 @@ def record(exe):
 
     source_file = target.FindFunctions("main")[0].compile_unit.file
     trace = []
-    while process.GetState() == lldb.eStateStopped:
-        logger.debug("frame: %s", thread.GetFrameAtIndex(0))
-        if thread.GetFrameAtIndex(0).line_entry.file == source_file:
-            trace.append(collect_step(thread))
-        thread.StepInto()
+    if line_of_interest:
+        for i in set(line_of_interest):
+            target.BreakpointCreateByLocation(source_file, i)
+        while process.GetState() == lldb.eStateStopped:
+            logger.debug("frame: %s", thread.GetFrameAtIndex(0))
+            if thread.GetFrameAtIndex(0).line_entry.file == source_file:
+                trace.append(collect_step(thread))
+            thread.StepInto()
+            logger.debug("frame: %s", thread.GetFrameAtIndex(0))
+            if thread.GetFrameAtIndex(0).line_entry.file == source_file:
+                trace.append(collect_step(thread))
+            process.Continue()
+    else:
+        while process.GetState() == lldb.eStateStopped:
+            logger.debug("frame: %s", thread.GetFrameAtIndex(0))
+            if thread.GetFrameAtIndex(0).line_entry.file == source_file:
+                trace.append(collect_step(thread))
+            thread.StepInto()
     return trace
 
 

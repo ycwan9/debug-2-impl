@@ -9,7 +9,15 @@ from record_trace import record
 def check_li(trace_u, trace_o):
     """check line invariant"""
     L = lambda t: {i.line for i in t}
-    return L(trace_o).difference(L(trace_u))
+    diff = L(trace_o).difference(L(trace_u))
+    if not diff:
+        return None
+    lines = [i.line for i in trace_o]
+    loi = set(diff)
+    for i, v in enumerate(lines):
+        if v in diff and i > 0:
+            loi.add(lines[i-1])
+    return diff, loi
 
 
 def check_bi(trace_u, trace_o):
@@ -33,28 +41,32 @@ def check_si(trace_u, trace_o):
 
     varnames = lambda x: {i.name for i in x.var}
 
-    return list(filter(bool, map(
-        lambda x: filter(
-            lambda y: not varnames(x).issubset(varnames(y)),
-            lines_u.get(x.line, [])
-        )
-    )))
+    return [
+        (o, u) for o in trace_o for u in lines_u.get(o.line, [])
+        if not varnames(o).issubset(varnames(u))
+    ]
 
 
 def check_pi(trace_u, trace_o):
     """check """
     params = lambda x: {(i.name, i.type, i.value) for t in x for i in t.arg}
-    return params(trace_o).difference(params(trace_u))
+    violation = params(trace_o).difference(params(trace_u))
+    varnames = {(i[0], i[1]) for i in violation}
+    loi = {t.line for t in trace_u if varnames
+           .intersection({(i.name, i.type) for i in t.arg})}
+    return (violation, loi) if violation else None
 
 
 def diff_trace(trace_u, trace_o):
+    trace_o = [i for i in trace_o if i.line != 0]
+    trace_u = [i for i in trace_u if i.line != 0]
     trace_o.sort(key=lambda x: x.line)
     trace_u.sort(key=lambda x: x.line)
-    return tuple(f(trace_u, trace_o) for f in [check_li, check_bi, check_li, check_pi])
+    return tuple(f(trace_u, trace_o) for f in [check_li, check_bi, check_si, check_pi])
 
 
-def diff_exe(u, o):
-    return diff_trace(record(u), record(o))
+def diff_exe(u, o, loi=None):
+    return diff_trace(record(u, loi), record(o, loi))
 
 
 CFALGS = [
@@ -71,7 +83,7 @@ CFALGS = [
     "-Werror=sometimes-uninitialized",
     "-Werror=uninitialized",
     "-Werror=uninitialized-const-reference",
-    "-Werror=strict-prototypes",
+    "-Wno-error=strict-prototypes",
     "-g"
 ]
 CFALGS_UNOPT = ["-O0"]
@@ -79,7 +91,7 @@ CFALGS_OPT = ["-O2"]
 CLANG = "clang"
 
 
-def diff_src(fn):
+def diff_src(fn, loi=None):
     fn_u = f"{fn}.unopt.elf"
     fn_o = f"{fn}.opt.elf"
     run([CLANG, "-o", fn_u, *CFALGS, *CFALGS_UNOPT, fn], check=True)
