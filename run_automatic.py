@@ -17,7 +17,7 @@ def test(prefix=""):
         bugdir = "{}/{}_{}".format(savedir, prefix, datetime.now().isoformat())
         os.mkdir(bugdir)
         os.system(f"bash -c 'cp -a {gendir}/{{*.c,perses*}} {bugdir}'")
-        os.system(f"bash -c 'rm -r {gendir}/{{*.c,perses*}}'")
+        os.system(f"bash -c 'rm -r {gendir}/{{*.*.c,perses*}}'")
     return ret
 
 
@@ -25,7 +25,7 @@ for i in range(gencnt):
     # generate valid test file
     os.environ["SKIP_CSMITH"] = ""
     os.environ["DO_TRANSFORM"] = ""
-    while test(f"gen.{i:03d}") not in (0, 33):
+    while test(f"gen.{i:03d}") != 33:
         pass
 
     os.environ["SKIP_CSMITH"] = "1"
