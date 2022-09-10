@@ -83,11 +83,11 @@ CFALGS = [
     "-Werror=sometimes-uninitialized",
     "-Werror=uninitialized",
     "-Werror=uninitialized-const-reference",
-    "-Wno-error=strict-prototypes",
+    "-Wno-error=extra-semi",
     "-g"
 ]
 CFALGS_UNOPT = ["-O0"]
-CFALGS_OPT = ["-O2"]
+CFALGS_OPT = ["-Og"]
 CLANG = "clang"
 
 

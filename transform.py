@@ -6,6 +6,7 @@ import shutil
 import random
 from subprocess import run
 
+logger = logging.getLogger(__file__)
 MAX_TRANS = int(os.getenv("MAX_TRANS", "4"))
 
 TRANSFORMERS = [
@@ -20,15 +21,16 @@ TRANSFORMERS = [
 def transform(transformer: list, fin: str):
     forig = f"{fin}.orig.c"
     shutil.move(fin, forig)
-    run([
+    cmd = [
         *transformer,
         "-p",
         os.path.dirname(fin),
         "-o",
         fin,
         forig
-    ],
-        check=True)
+    ]
+    logger.info("appling %s", str(cmd))
+    run(cmd, check=True)
 
 
 def random_transform(fin: str):

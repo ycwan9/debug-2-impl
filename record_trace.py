@@ -44,9 +44,26 @@ def collect_step(thread):
     return TraceItem(
         line_no,
         [i for i in [parse_var(v) for v in frame.get_locals()] if i],
-        [str(thread.GetFrameAtIndex(i).name) for i in range(thread.num_frames)],
+        [i.name for i in thread.get_thread_frames()],
         [i for i in [parse_var(v) for v in frame.get_arguments()] if i],
     )
+
+
+def get_main_line(fn: str):
+    """find line of main function
+    in order to avoid lldb bug"""
+    with open(fn) as f:
+        it = iter(f)
+        for no, line in enumerate(it):
+            if line.find("int main") != -1:
+                if line.find("{") != -1:
+                    return no + 1
+                else:
+                    try:
+                        if next(it).find("{") != -1:
+                            return no + 2
+                    except StopIteration:
+                        pass
 
 
 def record(exe, line_of_interest=None):
@@ -71,22 +88,29 @@ def record(exe, line_of_interest=None):
 
     source_file = target.FindFunctions("main")[0].compile_unit.file
     trace = []
+
+    main_line = get_main_line(source_file.fullpath)
+
+    def pos_valid():
+        le = thread.GetFrameAtIndex(0).line_entry
+        return le.file == source_file and le.line != main_line
+
     if line_of_interest:
         for i in set(line_of_interest):
             target.BreakpointCreateByLocation(source_file, i)
         while process.GetState() == lldb.eStateStopped:
             logger.debug("frame: %s", thread.GetFrameAtIndex(0))
-            if thread.GetFrameAtIndex(0).line_entry.file == source_file:
+            if pos_valid():
                 trace.append(collect_step(thread))
             thread.StepInto()
             logger.debug("frame: %s", thread.GetFrameAtIndex(0))
-            if thread.GetFrameAtIndex(0).line_entry.file == source_file:
+            if pos_valid():
                 trace.append(collect_step(thread))
             process.Continue()
     else:
         while process.GetState() == lldb.eStateStopped:
             logger.debug("frame: %s", thread.GetFrameAtIndex(0))
-            if thread.GetFrameAtIndex(0).line_entry.file == source_file:
+            if pos_valid():
                 trace.append(collect_step(thread))
             thread.StepInto()
     return trace

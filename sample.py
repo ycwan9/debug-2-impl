@@ -32,6 +32,7 @@ def main():
             os.environ["violation"] = "\n".join(
                 " ".join(map(str, i)) for i in vios)
         print("violation found")
+        print(ret)
         if not os.getenv("SKIP_REDUCE"):
             reduce_file(cfile)
         print(ret)
