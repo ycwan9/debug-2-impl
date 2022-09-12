@@ -8,7 +8,23 @@ from dataclasses import dataclass
 
 
 logger = logging.getLogger(__file__)
-accept_types = {"int", "short", "unsigned short", "unsigned int"}
+accept_types = {"int8_t", "int", "short", "unsigned short", "unsigned int"}
+alternative_types = {
+    "int16_t": "short",
+    "int32_t": "int",
+    "uint16_t": "unsigned short",
+    "uint32_t": "unsigned int"
+}
+
+
+def decor_type(x: str):
+    if not x:
+        return
+    if x.startswith("const "):
+        x = x[6:]
+    x = alternative_types.get(x, x)
+    if x in accept_types:
+        return x
 
 
 @dataclass
@@ -40,7 +56,14 @@ def collect_step(thread):
             return
         var_value = var.__str__().split(")")[-1].split("=")[-1].strip()
         var_type = var.GetType().GetCanonicalType().__str__().strip()
-        if var_type in accept_types:
+        var_type = decor_type(var_type)
+        try:
+            var_value = int(var_value)
+        except ValueError:
+            return
+        if not var_name:
+            return
+        if var_type:
             return Var(var_name, var_type, var_value)
 
     return TraceItem(

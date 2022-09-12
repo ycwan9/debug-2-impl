@@ -5,7 +5,7 @@ import os
 import logging
 import pickle
 import uuid
-from subprocess import run
+from subprocess import run, DEVNULL
 
 from record_trace import Var, TraceItem, accept_types
 
@@ -15,11 +15,11 @@ def record(exe, line_of_interest=None):
     savpos = f"{exe}.{uuid.uuid4()}.trace.pickle"
     cmd = [
         *"gdb -batch".split(" "),
-        "-ex", "source record_gdb_inner.py",
+        "-ex", "source {}/record_gdb_inner.py".format(os.path.dirname(os.path.abspath(__file__))),
         "-ex", "python record({}, {})".format(repr(savpos), repr(line_of_interest)),
         exe
     ]
-    run(cmd, check=True)
+    run(cmd, stdout=DEVNULL, check=True)
 
     trace = pickle.load(open(savpos, "rb"))
     os.unlink(savpos)
