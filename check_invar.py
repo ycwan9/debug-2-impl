@@ -3,11 +3,13 @@ import itertools
 import logging
 import sys
 from subprocess import run
-from record_trace import record
+from record_trace import record as lldb_record
+from record_gdb import record as gdb_record
 
 
 def check_li(trace_u, trace_o):
     """check line invariant"""
+    raise NotImplementedError
     L = lambda t: {i.line for i in t}
     diff = L(trace_o).difference(L(trace_u))
     if not diff:
@@ -20,6 +22,9 @@ def check_li(trace_u, trace_o):
     return diff, loi
 
 
+IGNORED_BT = {'__libc_start_main', '_start'}
+
+
 def check_bi(trace_u, trace_o):
     """check Backtrace Invariant"""
     lines_u = {k: list(g) for k, g in itertools.groupby(
@@ -27,7 +32,7 @@ def check_bi(trace_u, trace_o):
 
     def check_one(t):
         for i in lines_u.get(t.line, []):
-            if set(t.bt).issubset(set(i.bt)):
+            if not set(t.bt).symmetric_difference(set(i.bt)).difference(IGNORED_BT):
                 return False
         return True
 
@@ -36,6 +41,7 @@ def check_bi(trace_u, trace_o):
 
 def check_si(trace_u, trace_o):
     """check Scope Invariant"""
+    raise NotImplementedError
     lines_u = {k: list(g) for k, g in itertools.groupby(
         trace_u, lambda x: x.line)}
 
@@ -50,10 +56,10 @@ def check_si(trace_u, trace_o):
 def check_pi(trace_u, trace_o):
     """check """
     params = lambda x: {(i.name, i.type, i.value) for t in x for i in t.arg}
-    violation = params(trace_o).difference(params(trace_u))
+    violation = params(trace_o).symmetric_difference(params(trace_u))
     varnames = {(i[0], i[1]) for i in violation}
-    loi = {t.line for t in trace_u if varnames
-           .intersection({(i.name, i.type) for i in t.arg})}
+    loi = {t.line for t in trace_u + trace_o if
+           varnames.intersection({(i.name, i.type) for i in t.arg})}
     return (violation, loi) if violation else None
 
 
@@ -62,11 +68,11 @@ def diff_trace(trace_u, trace_o):
     trace_u = [i for i in trace_u if i.line != 0]
     trace_o.sort(key=lambda x: x.line)
     trace_u.sort(key=lambda x: x.line)
-    return tuple(f(trace_u, trace_o) for f in [check_li, check_bi, check_si, check_pi])
+    return tuple(f(trace_u, trace_o) for f in [check_bi, check_pi])
 
 
-def diff_exe(u, o, loi=None):
-    return diff_trace(record(u, loi), record(o, loi))
+def diff_exe(o, loi=None):
+    return diff_trace(lldb_record(o, loi), gdb_record(o, loi))
 
 
 CFALGS = [
@@ -95,8 +101,8 @@ def diff_src(fn, loi=None):
     fn_u = f"{fn}.unopt.elf"
     fn_o = f"{fn}.opt.elf"
     run([CLANG, "-o", fn_u, *CFALGS, *CFALGS_UNOPT, fn], check=True)
-    run([CLANG, "-o", fn_o, *CFALGS, *CFALGS_OPT, fn], check=True)
-    return diff_exe(fn_u, fn_o)
+    #run([CLANG, "-o", fn_o, *CFALGS, *CFALGS_OPT, fn], check=True)
+    return diff_exe(fn_u)
 
 
 if __name__ == "__main__":

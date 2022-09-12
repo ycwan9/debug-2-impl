@@ -30,9 +30,9 @@ def check_line(target):
     orig = [[int(i) for i in l.split(" ") if i] for l in os.environ["violation"].split("\n")]
     ret = diff_src(target, set(loi))
     vios, _ = line_of_interest(ret)
-    for i, j in zip(orig[:3], vios):
+    for i, j in zip(orig[:1], vios):
         assert set(i) == set(j)
-    assert orig[3][0] == vios[3][0]
+    assert orig[1][0] == vios[1][0]
 
 
 if __name__ == "__main__":

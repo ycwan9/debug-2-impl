@@ -2,7 +2,6 @@
 import sys
 import logging
 import os
-import shutil
 from subprocess import run
 
 import gencsmith
@@ -40,17 +39,12 @@ def main():
 
 
 def line_of_interest(r):
-    l, b, s, p = r
+    b, p = r
     vios = (
-        l[0] if l else [],
         [i.line for i in b],
-        [o.line for o, u in s],
         [len(p[0]) if p else 0]
     )
-    loi = set(l[1] if l else [])\
-        .union(set(vios[1]))\
-        .union(set(vios[2]))\
-        .union(p[1] if p else set())
+    loi = set(vios[0]).union(p[1] if p else set())
     return vios, loi
 
 
