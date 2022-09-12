@@ -36,6 +36,8 @@ def collect_step(thread):
             if i in var.__str__():
                 return
         var_name = var.__str__().split(")")[-1].split("=")[0].strip()
+        if not var_name:
+            return
         var_value = var.__str__().split(")")[-1].split("=")[-1].strip()
         var_type = var.GetType().GetCanonicalType().__str__().strip()
         if var_type in accept_types:
@@ -93,7 +95,7 @@ def record(exe, line_of_interest=None):
 
     def pos_valid():
         le = thread.GetFrameAtIndex(0).line_entry
-        return le.file == source_file and le.line != main_line
+        return le.file == source_file
 
     if line_of_interest:
         for i in set(line_of_interest):

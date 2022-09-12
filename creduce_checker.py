@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+from subprocess import check_call
 
 from check_invar import diff_src
 from sample import line_of_interest
@@ -38,6 +39,7 @@ def check_line(target):
 if __name__ == "__main__":
     check_method = os.getenv("REDUCE_METHOD")
     target = os.environ["creduce_target"]
+    check_call(["timeout", "-s", "9", "30", "ccomp", "-interp", "-fall", target])
     {
         "1st": check_1st,
         "cnt": check_cnt,
