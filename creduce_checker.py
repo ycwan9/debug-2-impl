@@ -34,6 +34,7 @@ def check_line(target):
     for i, j in zip(orig[:3], vios):
         assert set(i) == set(j)
     assert orig[3][0] == vios[3][0]
+    assert set(orig[4]) == set(vios[4])
 
 
 if __name__ == "__main__":

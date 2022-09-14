@@ -15,17 +15,19 @@ def main():
     if not os.getenv("C_INCLUDE_PATH"):
         os.environ["C_INCLUDE_PATH"] = "/usr/include/csmith"
     cfile = sys.argv[1]
+    cfilebkp = f"{cfile}.bkp.c"
     if not os.getenv("SKIP_CSMITH"):
         gencsmith.gencsmith(cfile)
+        shutil.copyfile(cfile, cfilebkp)
     if os.getenv("DO_TRANSFORM"):
-        random_transform(cfile)
+        random_transform(cfilebkp, cfile)
         assert gencsmith.checkUB(cfile) == 0
     ret = diff_src(cfile)
     if any(ret):
         check_method = os.getenv("REDUCE_METHOD")
         if check_method == "1st":
             from opt_bisect import bisect_1st_violation
-            os.environ["bisect"] = str(bisect_1st_violation(cfile))
+            os.environ["bisect"] = str(bisect_1st_violation(cfile)[0])
         elif check_method == "line":
             vios, loi = line_of_interest(ret)
             os.environ["loi"] = " ".join(map(str, loi))
@@ -41,17 +43,20 @@ def main():
 
 
 def line_of_interest(r):
-    l, b, s, p = r
+    l, b, s, p, im = r
+    im = [i[0] for i in im]
     vios = (
         l[0] if l else [],
         [i.line for i in b],
         [o.line for o, u in s],
-        [len(p[0]) if p else 0]
+        [len(p[0]) if p else 0],
+        im
     )
     loi = set(l[1] if l else [])\
         .union(set(vios[1]))\
         .union(set(vios[2]))\
-        .union(p[1] if p else set())
+        .union(p[1] if p else set())\
+        .union(set(im))
     return vios, loi
 
 

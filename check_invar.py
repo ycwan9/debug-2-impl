@@ -2,8 +2,14 @@
 import itertools
 import logging
 import sys
+from itertools import chain
 from subprocess import run
-from record_trace import record
+
+import os
+if os.getenv("USE_GDB"):
+    from record_gdb import record
+else:
+    from record_trace import record
 
 
 def check_li(trace_u, trace_o):
@@ -57,12 +63,29 @@ def check_pi(trace_u, trace_o):
     return (violation, loi) if violation else None
 
 
+def check_intermediate(trace_u, trace_o):
+    return {i for i in
+            (i.intermediate for i in chain(trace_u, trace_o))
+            if i}
+
+
+def no_check(a, b):
+    return None
+
+
 def diff_trace(trace_u, trace_o):
     trace_o = [i for i in trace_o if i.line != 0]
     trace_u = [i for i in trace_u if i.line != 0]
     trace_o.sort(key=lambda x: x.line)
     trace_u.sort(key=lambda x: x.line)
-    return tuple(f(trace_u, trace_o) for f in [check_li, check_bi, check_si, check_pi])
+    return tuple(f(trace_u, trace_o) for f in
+                 [
+                     check_li,
+                     check_bi,
+                     check_si,
+                     check_pi,
+                     check_intermediate
+                 ])
 
 
 def diff_exe(u, o, loi=None):

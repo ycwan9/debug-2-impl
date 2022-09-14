@@ -4,6 +4,7 @@ import sys
 import lldb
 import os
 import logging
+import re
 from dataclasses import dataclass
 
 
@@ -40,6 +41,7 @@ class TraceItem:
     var: list
     bt: list
     arg: list
+    intermediate: tuple
 
 
 def collect_step(thread):
@@ -47,7 +49,7 @@ def collect_step(thread):
     line_no = frame.line_entry.line
 
     def parse_var(var):
-        ignores = ["*", "[", "out of scope", "not available", "optimized out"]
+        ignores = ["*", "[", "out of scope", "not available", "optimized out", "DW_OP_entry_value"]
         for i in ignores:
             if i in var.__str__():
                 return
@@ -61,12 +63,10 @@ def collect_step(thread):
             var_value = int(var_value)
         except ValueError:
             return
-        if not var_name:
-            return
         if var_type:
             return Var(var_name, var_type, var_value)
 
-    return TraceItem(
+    return (
         line_no,
         [i for i in [parse_var(v) for v in frame.get_locals()] if i],
         [i.name for i in thread.get_thread_frames()],
@@ -116,9 +116,37 @@ def record(exe, line_of_interest=None):
 
     main_line = get_main_line(source_file.fullpath)
 
+    with open(source_file.fullpath) as f:
+        src = list(f)
+
+    intermediate_exp = re.compile("(t[0-9]+) = (.+);")
+
+    ci = debugger.GetCommandInterpreter()
+    assert ci
+    res = lldb.SBCommandReturnObject()
+
+    def check_intermediate():
+        line_no = thread.GetFrameAtIndex(0).line_entry.line
+        r = intermediate_exp.search(src[line_no - 1])
+        thread.StepInto()
+        if not r:
+            return
+        v, e = r.groups()
+        ci.HandleCommand(f"p {v} ^ ({e})", res)
+        if res.Succeeded():
+            o = res.GetOutput()
+            logger.debug("p %s, %s => %s", v, e, o)
+            if o.find("= 0") < 0:
+                return line_no, v, e, o
+
+    def check_step():
+        s = collect_step(thread)
+        i = check_intermediate()
+        return TraceItem(*s, i)
+
     def pos_valid():
         le = thread.GetFrameAtIndex(0).line_entry
-        return le.file == source_file
+        return le.file == source_file and le.line != main_line
 
     if line_of_interest:
         for i in set(line_of_interest):
@@ -126,18 +154,16 @@ def record(exe, line_of_interest=None):
         while process.GetState() == lldb.eStateStopped:
             logger.debug("frame: %s", thread.GetFrameAtIndex(0))
             if pos_valid():
-                trace.append(collect_step(thread))
-            thread.StepInto()
-            logger.debug("frame: %s", thread.GetFrameAtIndex(0))
-            if pos_valid():
-                trace.append(collect_step(thread))
-            process.Continue()
+                trace.append(check_step())
+            if thread.GetFrameAtIndex(0).line_entry.line not in line_of_interest:
+                process.Continue()
     else:
         while process.GetState() == lldb.eStateStopped:
             logger.debug("frame: %s", thread.GetFrameAtIndex(0))
             if pos_valid():
-                trace.append(collect_step(thread))
-            thread.StepInto()
+                trace.append(check_step())
+            else:
+                thread.StepInto()
     return trace
 
 

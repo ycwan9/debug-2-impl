@@ -50,7 +50,8 @@ def collect_step():
         line_no,
         local,
         bt,
-        arg
+        arg,
+        None
     )
 
 
