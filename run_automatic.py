@@ -12,12 +12,20 @@ gencnt, trancnt = map(int, sys.argv[3:5])
 
 
 def test(prefix=""):
-    ret = run(["python3", "sample.py", f"{gendir}/sample.c"]).returncode
-    if ret == 0:
-        bugdir = "{}/{}_{}".format(savedir, prefix, datetime.now().isoformat())
+    with open(f"{gendir}/stdout.log", "wb") as f:
+        ret = run(
+            ["python3", "sample.py", f"{gendir}/sample.c"],
+            stdout=f
+        ).returncode
+    if ret in (0, 34):
+        bugdir = "{}/{}_{}_{}".format(
+            savedir,
+            prefix,
+            "err" if ret == 34 else "vio",
+            datetime.now().isoformat())
         os.mkdir(bugdir)
-        os.system(f"bash -c 'cp -a {gendir}/{{*.c,perses*}} {bugdir}'")
-        os.system(f"bash -c 'rm -r {gendir}/{{*.*.c,perses*}}'")
+        os.system(f"bash -c 'cp -a {gendir}/{{*.c,*.log,perses*}} {bugdir}'")
+        os.system(f"bash -c 'rm -r {gendir}/{{*.*.c,*.log,*.orig,perses*}}'")
     return ret
 
 
@@ -25,6 +33,7 @@ for i in range(gencnt):
     # generate valid test file
     os.environ["SKIP_CSMITH"] = ""
     os.environ["DO_TRANSFORM"] = ""
+    os.environ["RUN_COUNT"] = f"{i:03d}"
     while test(f"gen.{i:03d}") != 33:
         pass
 

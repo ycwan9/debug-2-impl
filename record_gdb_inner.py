@@ -4,6 +4,7 @@ import sys
 import os
 import logging
 import pickle
+import re
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -18,9 +19,12 @@ def __filter_out_none(l):
     return [i for i in l if i is not None]
 
 
+CSMITH_MARCO_VAR_EXP = re.compile(r"[su]i[0-9]+")
+
+
 def parse_var(x):
     name = x.sym.name
-    if not name:
+    if not name or CSMITH_MARCO_VAR_EXP.match(name):
         return
     var_type = decor_type(x.sym.type.name)
     if not var_type:

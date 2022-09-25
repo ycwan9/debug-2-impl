@@ -17,6 +17,8 @@ TRANSFORMERS = [
 
 
 def transform(transformer: list, fin: str, fout: str):
+    env = os.environ
+    env["C_INCLUDE_PATH"] = os.getenv("TRANS_INCLUDE_PATH", "") + ":" + os.getenv("C_INCLUDE_PATH", "")
     cmd = [
         *transformer,
         "-p",
@@ -26,7 +28,7 @@ def transform(transformer: list, fin: str, fout: str):
         fin
     ]
     logger.info("appling %s", str(cmd))
-    run(cmd, check=True)
+    run(cmd, env=env, check=True)
 
 
 def random_transform(fin: str, fout: str):

@@ -4,9 +4,10 @@ import logging
 import os
 import shutil
 from subprocess import run
+from traceback import print_exc
 
 import gencsmith
-from check_invar import diff_src
+from check_invar import diff_src, OptimizedTraceException
 from reduce_cfile import reduce_file
 from transform import random_transform
 
@@ -22,7 +23,11 @@ def main():
     if os.getenv("DO_TRANSFORM"):
         random_transform(cfilebkp, cfile)
         assert gencsmith.checkUB(cfile) == 0
-    ret = diff_src(cfile)
+    try:
+        ret = diff_src(cfile)
+    except OptimizedTraceException:
+        print_exc()
+        exit(34)
     if any(ret):
         check_method = os.getenv("REDUCE_METHOD")
         if check_method == "1st":

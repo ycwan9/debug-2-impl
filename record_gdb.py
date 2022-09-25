@@ -14,7 +14,7 @@ logger = logging.getLogger(__file__)
 def record(exe, line_of_interest=None):
     savpos = f"{exe}.{uuid.uuid4()}.trace.pickle"
     cmd = [
-        *"gdb -batch".split(" "),
+        *"timeout -s 9 600 gdb -batch".split(" "),
         "-ex", "source {}/record_gdb_inner.py".format(os.path.dirname(os.path.abspath(__file__))),
         "-ex", "python record({}, {})".format(repr(savpos), repr(line_of_interest)),
         exe

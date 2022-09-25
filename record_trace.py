@@ -132,6 +132,8 @@ def record(exe, line_of_interest=None):
         if not r:
             return
         v, e = r.groups()
+        if "func_" in e or " = " in e:
+            return
         ci.HandleCommand(f"p {v} ^ ({e})", res)
         if res.Succeeded():
             o = res.GetOutput()
