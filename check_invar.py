@@ -3,13 +3,57 @@ import itertools
 import logging
 import sys
 from itertools import chain
-from subprocess import run
+from subprocess import run, CalledProcessError
 
 import os
 if os.getenv("USE_GDB"):
     from record_gdb import record
 else:
     from record_trace import record
+
+
+import importlib
+__flags = importlib.import_module(os.getenv("COMPILE_FLAGS", "default_flags"))
+CFALGS = __flags.CFALGS
+CFALGS_UNOPT = __flags.CFALGS_UNOPT
+CFALGS_OPT = __flags.CFALGS_OPT
+CLANG = __flags.CLANG
+
+
+class TraceException(Exception):
+    pass
+
+
+class CompileException(TraceException):
+    pass
+
+
+class RecordException(TraceException):
+    pass
+
+
+class UnoptimizedTraceException(TraceException):
+    pass
+
+
+class OptimizedTraceException(TraceException):
+    pass
+
+
+class CompileUnoptimizedException(CompileException, UnoptimizedTraceException):
+    pass
+
+
+class CompileOptimizedException(CompileException, OptimizedTraceException):
+    pass
+
+
+class RecordUnoptimizedException(RecordException, UnoptimizedTraceException):
+    pass
+
+
+class RecordOptimizedException(RecordException, OptimizedTraceException):
+    pass
 
 
 def check_li(trace_u, trace_o):
@@ -89,36 +133,28 @@ def diff_trace(trace_u, trace_o):
 
 
 def diff_exe(u, o, loi=None):
-    return diff_trace(record(u, loi), record(o, loi))
-
-
-CFALGS = [
-    "-Werror=conditional-uninitialized",
-    "-Werror=format-insufficient-args",
-    "-Werror=format-pedantic",
-    "-Werror=implicit-function-declaration",
-    "-Werror=implicit-int",
-    "-Werror=incompatible-library-redeclaration",
-    "-Werror=incompatible-pointer-types",
-    "-Werror=int-conversion",
-    "-Werror=pedantic",
-    "-Werror=return-type",
-    "-Werror=sometimes-uninitialized",
-    "-Werror=uninitialized",
-    "-Werror=uninitialized-const-reference",
-    "-Wno-error=extra-semi",
-    "-g"
-]
-CFALGS_UNOPT = ["-O0"]
-CFALGS_OPT = ["-Og"]
-CLANG = "clang"
+    try:
+        tu = record(u, loi)
+    except Exception as e:
+        raise RecordUnoptimizedException from e
+    try:
+        to = record(o, loi)
+    except Exception as e:
+        raise RecordOptimizedException from e
+    return diff_trace(tu, to)
 
 
 def diff_src(fn, loi=None):
     fn_u = f"{fn}.unopt.elf"
     fn_o = f"{fn}.opt.elf"
-    run([CLANG, "-o", fn_u, *CFALGS, *CFALGS_UNOPT, fn], check=True)
-    run([CLANG, "-o", fn_o, *CFALGS, *CFALGS_OPT, fn], check=True)
+    try:
+        run([CLANG, "-o", fn_u, *CFALGS, *CFALGS_UNOPT, fn], check=True)
+    except CalledProcessError as e:
+        raise CompileUnoptimizedException from e
+    try:
+        run([CLANG, "-o", fn_o, *CFALGS, *CFALGS_OPT, fn], check=True)
+    except CalledProcessError as e:
+        raise CompileOptimizedException from e
     return diff_exe(fn_u, fn_o)
 
 
